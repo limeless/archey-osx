@@ -39,7 +39,7 @@ do
         opt_offline=t
       ;;
     -h|--help)
-      echo "Archey OS X 1.6.0"
+      echo "Archey OS X 1.6.1"
       echo
       echo "Usage: $0 [options]"
       echo
@@ -63,28 +63,29 @@ user=$(whoami)
 hostname=$(hostname | sed 's/.local//g')
 
 if [[ "${opt_offline}" = f ]]; then
-    ipfile="${HOME}/config/.archey-info"
-    if [ -a "$ipfile" ] && test `find "$ipfile" -mmin -360`; then
+    infofile="${HOME}/.config/.archey-info"
+    if [ -a "$infofile" ] && test `find "$infofile" -mmin -360`; then
       while read -r line1; do
         read line2
         read line3
         ip="$line1"
         country="$line2"
         city="$line3"
-      done < "$ipfile"
+      done < "$infofile"
     else
-      ip=$(curl -sS ifconfig.co)
-      counrty=$(curl -sS ifconfig.co/country)
-      city=$(curl -sS ifconfig.co/city)
-      echo $ip >> "$ipfile"
-      echo $country >> "$ipfile"
-      echo $city >> "$ipfile"
+      info=$(curl -sS --max-time 5 ifconfig.co/json)
+      ip=$(echo $info | $(which jq) --raw-output '.ip')
+      country=$(echo $info | $(which jq) --raw-output '.country')
+      city=$(echo $info | $(which jq) --raw-output '.city')
+      echo $ip >> "$infofile"
+      echo $country >> "$infofile"
+      echo $city >> "$infofile"
     fi
 fi
 
-distro="OS X $(sw_vers -productVersion)"
+distro="macOS $(sw_vers -productVersion)"
 kernel=$(uname)
-uptime=$(uptime | sed 's/.*up \([^,]*\), .*/\1/')
+uptime=$(uptime 2> /dev/null | sed -e 's/.*up\s*//' -e 's/,\s*[0-9]* user.*//')
 shell="$SHELL"
 terminal="$TERM ${TERM_PROGRAM//_/ }"
 cpu=$(sysctl -n machdep.cpu.brand_string)
@@ -138,7 +139,7 @@ fieldlist[${#fieldlist[@]}]="${textColor}CPU:${normal} ${cpu}${normal}"
 fieldlist[${#fieldlist[@]}]="${textColor}Memory:${normal} ${ram}${normal}"
 fieldlist[${#fieldlist[@]}]="${textColor}Disk:${normal} ${disk}${normal}"
 if [[ ! -z $battery ]]; then
-    fieldlist[${#fieldlist[@]}]="${textColor}Battery:${normal} ${battery}%${normal}%"
+    fieldlist[${#fieldlist[@]}]="${textColor}Battery:${normal} ${battery}%${normal}"
 fi
 if [ "${opt_offline}" = f ]; then
     fieldlist[${#fieldlist[@]}]="${textColor}IP Address:${normal} ${ip}${normal}"
