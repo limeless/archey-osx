@@ -47,7 +47,7 @@ do
       echo "  -m --macports  Force use MacPorts as package system."
       echo "  -b --nocolor   Turn color off."
       echo "  -c --color     Force the color on (overrides --nocolor)."
-      echo "  -o --offline   Disable the IP address check."
+      echo "  -o --offline   Disable the IP address and location check."
       exit 0
       ;;
     *)
@@ -81,6 +81,10 @@ if [[ "${opt_offline}" = f ]]; then
       echo $country >> "$infofile"
       echo $city >> "$infofile"
     fi
+    # Get the interface used for the default route
+    activeadapter=$(route -n get 0.0.0.0 | awk '/interface: / {print $2}')
+    # Now get the IP address assigned to that interface
+    localip=$(ifconfig ${activeadapter} | awk '/inet / {print $2}')
 fi
 
 distro="macOS $(sw_vers -productVersion)"
@@ -142,10 +146,9 @@ if [[ ! -z $battery ]]; then
     fieldlist[${#fieldlist[@]}]="${textColor}Battery:${normal} ${battery}%${normal}"
 fi
 if [ "${opt_offline}" = f ]; then
-    fieldlist[${#fieldlist[@]}]="${textColor}IP Address:${normal} ${ip}${normal}"
+    fieldlist[${#fieldlist[@]}]="${textColor}IP Address:${normal} ${ip}, ${localip}${normal}"
     fieldlist[${#fieldlist[@]}]="${textColor}Location:${normal} ${country}, ${city}${normal}"
 fi
-
 logofile=${ARCHEY_LOGO_FILE:-"${HOME}/.config/archey-logo"}
 if [ -a "$logofile" ]
   then
